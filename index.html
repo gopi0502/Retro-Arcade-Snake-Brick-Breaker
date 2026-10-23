@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Retro Arcade: Cyber Snake & Neon Brick Breaker</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕹️</text></svg>">
+</head>
+<body>
+    <div class="cabinet-wrapper">
+        <!-- Top Arcade Cabinet Marquee -->
+        <header class="arcade-marquee">
+            <h1 class="marquee-title">🕹️ RETRO ARCADE 198X</h1>
+            <div class="marquee-actions">
+                <button id="btn-audio-toggle" class="btn-arcade-pill active" title="Toggle Sound FX">🔊 SOUND: ON</button>
+                <button id="btn-crt-toggle" class="btn-arcade-pill active" title="Toggle CRT Filter">CRT: ON</button>
+                <button id="btn-fullscreen" class="btn-arcade-pill" title="Toggle Fullscreen">⛶ FULL</button>
+            </div>
+        </header>
+
+        <!-- CRT Monitor Screen Frame -->
+        <div class="crt-bezel">
+            <div id="crt-screen" class="crt-screen crt-active">
+                <!-- Scanlines & Glass glare overlay -->
+                <div class="scanlines"></div>
+                <div class="crt-vignette"></div>
+                <div class="crt-glare"></div>
+
+                <!-- Main Game Canvas (600x600 virtual resolution) -->
+                <canvas id="arcade-canvas" width="600" height="600"></canvas>
+
+                <!-- In-Game HUD Overlay -->
+                <div id="game-screen" class="crt-view">
+                    <div class="screen-hud">
+                        <div class="hud-stat">
+                            <span id="hud-game-title">ARCADE</span>
+                        </div>
+                        <div class="hud-stat">
+                            <span>1UP:</span>
+                            <span id="hud-score" class="val">0</span>
+                        </div>
+                        <div class="hud-stat">
+                            <span>HIGH:</span>
+                            <span id="hud-high-score" class="val">0</span>
+                        </div>
+                        <div class="hud-stat">
+                            <span id="hud-extra-label">LEN:</span>
+                            <span id="hud-extra-val" class="val">3</span>
+                        </div>
+                        <div id="hud-level-wrap" class="hud-stat" style="display:none;">
+                            <span>STAGE:</span>
+                            <span id="hud-level" class="val">1</span>
+                        </div>
+                        <div id="hud-combo-wrap" class="hud-stat" style="display:none;">
+                            <span>COMBO:</span>
+                            <span id="hud-combo" class="val">--</span>
+                        </div>
+                        <div class="hud-buttons">
+                            <button id="btn-pause" class="hud-btn" title="Pause Game">⏸</button>
+                            <button id="btn-back-menu" class="hud-btn" title="Exit to Menu">✕</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Menu Screen View -->
+                <div id="menu-screen" class="crt-view active">
+                    <div class="menu-brand">
+                        <div class="menu-title-sub">★ INSERT COIN TO PLAY ★</div>
+                        <h2 class="menu-title-main">SELECT GAME</h2>
+                    </div>
+
+                    <div class="menu-cards">
+                        <div id="btn-play-snake" class="menu-game-card card-snake">
+                            <div class="card-title">🐍 CYBER SNAKE</div>
+                            <div class="card-desc">Navigate neon grid, devour glowing power orbs, trigger 2x score multipliers and dodge deadly barriers!</div>
+                        </div>
+
+                        <div id="btn-play-brick" class="menu-game-card card-brick">
+                            <div class="card-title">🧱 NEON BRICK BREAKER</div>
+                            <div class="card-desc">Shatter reinforced & explosive bricks, catch multi-ball & laser cannon power-ups across 5 stages!</div>
+                        </div>
+                    </div>
+
+                    <div class="menu-utility-buttons">
+                        <button id="btn-view-leaderboard" class="btn-arcade">🏆 HIGH SCORES</button>
+                        <button id="btn-help" class="btn-arcade cyan">❓ HOW TO PLAY</button>
+                    </div>
+                </div>
+
+                <!-- Pause Menu Modal -->
+                <div id="pause-modal" class="crt-view">
+                    <h2 class="modal-title">GAME PAUSED</h2>
+                    <p class="modal-desc">Take a breather, Arcade Master!</p>
+                    <div class="modal-actions">
+                        <button id="btn-resume" class="btn-arcade cyan">RESUME</button>
+                        <button id="btn-restart" class="btn-arcade">RESTART</button>
+                        <button id="btn-exit-pause" class="btn-arcade magenta">MAIN MENU</button>
+                    </div>
+                </div>
+
+                <!-- Game Over / Victory Modal -->
+                <div id="gameover-modal" class="crt-view">
+                    <h2 id="gameover-title" class="modal-title">GAME OVER</h2>
+                    <div class="score-display-box">
+                        FINAL SCORE: <span id="gameover-score">0</span>
+                    </div>
+
+                    <div id="gameover-new-highscore" class="new-record-alert" style="display: none;">
+                        ★ NEW HIGH SCORE RECORD! ★
+                    </div>
+
+                    <!-- Initials entry for leaderboard -->
+                    <div id="initials-entry-section" style="display: none; flex-direction: column; align-items: center;">
+                        <p class="modal-desc" style="margin-bottom: 6px;">ENTER YOUR INITIALS:</p>
+                        <div class="initials-box">
+                            <div id="initial-char-0" class="initial-char selected">A</div>
+                            <div id="initial-char-1" class="initial-char">A</div>
+                            <div id="initial-char-2" class="initial-char">A</div>
+                        </div>
+                        <div class="initials-controls">
+                            <button id="btn-init-up" class="btn-arcade cyan">▲</button>
+                            <button id="btn-init-down" class="btn-arcade cyan">▼</button>
+                            <button id="btn-init-next" class="btn-arcade">NEXT ➔</button>
+                            <button id="btn-submit-score" class="btn-arcade magenta">ENTER</button>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button id="btn-play-again" class="btn-arcade cyan">PLAY AGAIN</button>
+                        <button id="btn-gameover-menu" class="btn-arcade">MENU</button>
+                    </div>
+                </div>
+
+                <!-- High Scores Leaderboard Modal -->
+                <div id="leaderboard-modal" class="crt-view">
+                    <h2 class="modal-title">HALL OF FAME</h2>
+                    <div class="leaderboard-tabs">
+                        <button id="tab-snake" class="tab-btn active">🐍 SNAKE</button>
+                        <button id="tab-brick" class="tab-btn">🧱 BRICK BREAKER</button>
+                    </div>
+                    <div id="leaderboard-list" class="leaderboard-list">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+                    <button id="btn-close-leaderboard" class="btn-arcade cyan">BACK TO MENU</button>
+                </div>
+
+                <!-- How To Play Modal -->
+                <div id="help-modal" class="crt-view">
+                    <h2 class="modal-title">HOW TO PLAY</h2>
+                    <div class="help-grid">
+                        <div class="help-card">
+                            <h4>🐍 CYBER SNAKE</h4>
+                            <p><span class="key-badge">ARROWS</span> or <span class="key-badge">WASD</span>: Steer snake</p>
+                            <p>🍎 Red Apple: +10 pts, grow</p>
+                            <p>⭐ Star: +50 pts timed bonus</p>
+                            <p>⚡ Blue Orb: 2X score boost</p>
+                            <p>⚠️ Don't hit walls or your tail!</p>
+                        </div>
+                        <div class="help-card">
+                            <h4>🧱 BRICK BREAKER</h4>
+                            <p><span class="key-badge">◀ ▶</span> or <span class="key-badge">MOUSE</span>: Move paddle</p>
+                            <p><span class="key-badge">SPACEBAR</span> or <span class="key-badge">CLICK</span>: Launch ball / Fire</p>
+                            <p>💣 Red Bricks: Explosive TNT!</p>
+                            <p>📦 Capsules: Multi-Ball, Lasers, Shield, Fireball</p>
+                        </div>
+                    </div>
+                    <button id="btn-close-help" class="btn-arcade cyan">GOT IT!</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lower Arcade Cabinet Controls (Touch D-pad, Coin Door & Action Buttons) -->
+        <div class="arcade-controls-panel">
+            <!-- Left: Virtual D-Pad -->
+            <div class="dpad-container">
+                <button id="dpad-up" class="dpad-btn dpad-up" aria-label="Up">▲</button>
+                <button id="dpad-left" class="dpad-btn dpad-left" aria-label="Left">◀</button>
+                <div class="dpad-center"></div>
+                <button id="dpad-right" class="dpad-btn dpad-right" aria-label="Right">▶</button>
+                <button id="dpad-down" class="dpad-btn dpad-down" aria-label="Down">▼</button>
+            </div>
+
+            <!-- Middle: Interactive Coin Door Easter Egg -->
+            <div class="coin-door">
+                <button id="btn-coin" class="coin-slot-btn" title="Click to insert coin!">
+                    <div class="coin-slot-icon"></div>
+                    <span>INSERT COIN</span>
+                    <span style="font-size: 0.45rem; color:#ffea00;">25¢ CREDIT</span>
+                </button>
+            </div>
+
+            <!-- Right: Action Buttons A and B -->
+            <div class="action-buttons-container">
+                <div class="arcade-round-btn-wrap">
+                    <button id="btn-touch-b" class="arcade-round-btn btn-b" aria-label="Button B">B</button>
+                    <span class="round-btn-label">PAUSE</span>
+                </div>
+                <div class="arcade-round-btn-wrap">
+                    <button id="btn-touch-a" class="arcade-round-btn btn-a" aria-label="Button A">A</button>
+                    <span class="round-btn-label">ACTION</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="arcade-footer">
+            RETRO ARCADE CABIN 198X • 8-BIT STEREO SYNTHESIZER • ZERO DEPENDENCIES
+        </footer>
+    </div>
+
+    <!-- Script Imports -->
+    <script src="js/audio.js"></script>
+    <script src="js/leaderboard.js"></script>
+    <script src="js/snake.js"></script>
+    <script src="js/brickbreaker.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
